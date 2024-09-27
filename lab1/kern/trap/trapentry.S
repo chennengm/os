@@ -2,11 +2,11 @@
 
     .macro SAVE_ALL
 
-    csrw sscratch, sp
+    csrw sscratch, sp  
 
     addi sp, sp, -36 * REGBYTES
     # save x registers
-    STORE x0, 0*REGBYTES(sp)
+    STORE x0, 0*REGBYTES(sp)#据寄存器的编号和宏定义的偏移量来确定的
     STORE x1, 1*REGBYTES(sp)
     STORE x3, 3*REGBYTES(sp)
     STORE x4, 4*REGBYTES(sp)
@@ -41,26 +41,26 @@
     # get sr, epc, badvaddr, cause
     # Set sscratch register to 0, so that if a recursive exception
     # occurs, the exception vector knows it came from the kernel
-    csrrw s0, sscratch, x0
-    csrr s1, sstatus
-    csrr s2, sepc
-    csrr s3, sbadaddr
-    csrr s4, scause
+    csrrw s0, sscratch, x0   #s0先读取ss再把x0赋值给ss
+    csrr s1, sstatus  #sstatus：保存当前的状态寄存器。
+    csrr s2, sepc     #sepc：保存引发异常的指令地址。
+    csrr s3, sbadaddr  #sbadaddr：保中断处理所需要的辅助信息，记录产生异常的目标地址，stval
+    csrr s4, scause  #scause：保存异常的原因
 
     STORE s0, 2*REGBYTES(sp)
     STORE s1, 32*REGBYTES(sp)
     STORE s2, 33*REGBYTES(sp)
     STORE s3, 34*REGBYTES(sp)
-    STORE s4, 35*REGBYTES(sp)
+    STORE s4, 35*REGBYTES(sp)#将前面保存的寄存器值依次存入堆栈中。
     .endm
 
-    .macro RESTORE_ALL
+    .macro RESTORE_ALL #用于恢复被 SAVE_ALL 宏保存的寄存器值。在异常处理完成后使用，以恢复CPU状态。
 
-    LOAD s1, 32*REGBYTES(sp)
+    LOAD s1, 32*REGBYTES(sp)#特殊寄存器保存位置基于他们在宏定义中的位置，位置紧跟在通用寄存器之后
     LOAD s2, 33*REGBYTES(sp)
 
     csrw sstatus, s1
-    csrw sepc, s2
+    csrw sepc, s2 #从堆栈中加载 s1 和 s2 的值，恢复到 sstatus 和 sepc 中
 
     # restore x registers
     LOAD x1, 1*REGBYTES(sp)
@@ -92,18 +92,18 @@
     LOAD x28, 28*REGBYTES(sp)
     LOAD x29, 29*REGBYTES(sp)
     LOAD x30, 30*REGBYTES(sp)
-    LOAD x31, 31*REGBYTES(sp)
+    LOAD x31, 31*REGBYTES(sp)#从堆栈中依次加载 x1 到 x31 的值，恢复所有通用寄存器的状态。
     # restore sp last
-    LOAD x2, 2*REGBYTES(sp)
+    LOAD x2, 2*REGBYTES(sp) #从堆栈中恢复 x2（堆栈指针 sp）
     #addi sp, sp, 36 * REGBYTES
     .endm
-
-    .globl __alltraps
+#
+    .globl __alltraps #中断和异常的入口点。
 .align(2)
 __alltraps:
     SAVE_ALL
 
-    move  a0, sp
+    move  a0, sp#站指针的值保存a0中，然后将a0的值作为参数传递给trap
     jal trap
     # sp should be the same as before "jal trap"
 

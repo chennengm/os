@@ -70,7 +70,7 @@ Breakpoint 1, kern_entry () at kern/init/entry.S:7
 ```
 可以看到程序成功在 0x80200000 处设置断点并跳转到操作系统的入口点 kern_entry 函数，接过计算机的控制权，并且在内核中分配内存栈。然后跳转到 kern_init这个真正的入口点，并且debug窗口出现了输出，验证了内核启动的完整过程。
 
-![alt text](lab1/9d2fb2a4883c3ac19dc411f9d3c40fa.jpg)
+![alt text](9d2fb2a4883c3ac19dc411f9d3c40fa.jpg)
 
 
 

@@ -29,6 +29,10 @@ void idt_init(void) {
     /* Set sscratch register to 0, indicating to exception vector that we are
      * presently executing in the kernel */
     write_csr(sscratch, 0);
+//约 定 ： 若 中 断 前 处 于S态 ，sscratch为0
+//若 中 断 前 处 于U态 ，sscratch存 储 内 核 栈 地 址
+//那 么 之 后 就 可 以 通 过sscratch的 数 值 判 断 是 内 核 态 产 生 的 中 断 还 是 用 户 态 产 生 的 中 断
+//我 们 现 在 是 内 核 态 所 以 给sscratch置 零
     /* Set the exception vector address */
     write_csr(stvec, &__alltraps);
 }
@@ -38,11 +42,13 @@ bool trap_in_kernel(struct trapframe *tf) {
     return (tf->status & SSTATUS_SPP) != 0;
 }
 
+//SSTATUS_SPP 是 sstatus 寄存器中的一个位，表示当前执行环境的特权级,0用户1监督。
+
 void print_trapframe(struct trapframe *tf) {
     cprintf("trapframe at %p\n", tf);
-    print_regs(&tf->gpr);
-    cprintf("  status   0x%08x\n", tf->status);
-    cprintf("  epc      0x%08x\n", tf->epc);
+    print_regs(&tf->gpr);//保存通用寄存器。
+    cprintf("  status   0x%08x\n", tf->status);//保存 CPU 状态寄存器的值
+    cprintf("  epc      0x%08x\n", tf->epc);//保存异常发生时的程序计数器
     cprintf("  badvaddr 0x%08x\n", tf->badvaddr);
     cprintf("  cause    0x%08x\n", tf->cause);
 }
@@ -161,6 +167,9 @@ void exception_handler(struct trapframe *tf) {
              *(2)输出异常指令地址
              *(3)更新 tf->epc寄存器
             */
+            cprintf("Exception type:Illegal instruction\n");
+            cprintf("Illegal instruction caught at 0x%08x\n", tf->epc);
+            tf->epc+=4;
             break;
         case CAUSE_BREAKPOINT:
             //断点异常处理
@@ -169,6 +178,9 @@ void exception_handler(struct trapframe *tf) {
              *(2)输出异常指令地址
              *(3)更新 tf->epc寄存器
             */
+            cprintf("Exception type: breakpoint\n");
+            cprintf("ebreak caught at 0x%08x\n", tf->epc);
+            tf->epc+=2; //断点异常指令占两个字节
             break;
         case CAUSE_MISALIGNED_LOAD:
             break;
@@ -195,7 +207,7 @@ void exception_handler(struct trapframe *tf) {
 /* trap_dispatch - dispatch based on what type of trap occurred */
 static inline void trap_dispatch(struct trapframe *tf) {
     if ((intptr_t)tf->cause < 0) {
-        // interrupts
+        // interrupts，scause是负数，最高位是1
         interrupt_handler(tf);
     } else {
         // exceptions

@@ -31,7 +31,8 @@ int kern_init(void) {
     idt_init();  // init interrupt descriptor table
 
     clock_init();   // init clock interrupt
-    intr_enable();  // enable irq interrupt
+
+    intr_enable();  // enable irq interrupt超级用户中断使能位
 
 
 

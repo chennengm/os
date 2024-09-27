@@ -36,7 +36,7 @@ int kern_init(void) {
     while (1)
         ;
 }
-
+//堆栈回溯
 void __attribute__((noinline))
 grade_backtrace2(unsigned long long arg0, unsigned long long arg1, unsigned long long arg2, unsigned long long arg3) {
     mon_backtrace(0, NULL, NULL);

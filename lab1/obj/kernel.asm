@@ -483,15 +483,15 @@ void print_trapframe(struct trapframe *tf) {
     8020036e:	e406                	sd	ra,8(sp)
     cprintf("trapframe at %p\n", tf);
     80200370:	cfbff0ef          	jal	ra,8020006a <cprintf>
-    print_regs(&tf->gpr);
+    print_regs(&tf->gpr);//保存通用寄存器。
     80200374:	8522                	mv	a0,s0
     80200376:	e1dff0ef          	jal	ra,80200192 <print_regs>
-    cprintf("  status   0x%08x\n", tf->status);
+    cprintf("  status   0x%08x\n", tf->status);//保存 CPU 状态寄存器的值
     8020037a:	10043583          	ld	a1,256(s0)
     8020037e:	00001517          	auipc	a0,0x1
     80200382:	a5250513          	addi	a0,a0,-1454 # 80200dd0 <etext+0x430>
     80200386:	ce5ff0ef          	jal	ra,8020006a <cprintf>
-    cprintf("  epc      0x%08x\n", tf->epc);
+    cprintf("  epc      0x%08x\n", tf->epc);//保存异常发生时的程序计数器
     8020038a:	10843583          	ld	a1,264(s0)
     8020038e:	00001517          	auipc	a0,0x1
     80200392:	a5a50513          	addi	a0,a0,-1446 # 80200de8 <etext+0x448>
@@ -640,8 +640,8 @@ void trap(struct trapframe *tf) { trap_dispatch(tf); }
 
 0000000080200480 <__alltraps>:
     .endm
-
-    .globl __alltraps
+#
+    .globl __alltraps #中断和异常的入口点。
 .align(2)
 __alltraps:
     SAVE_ALL
@@ -689,7 +689,7 @@ __alltraps:
     802004de:	ea4e                	sd	s3,272(sp)
     802004e0:	ee52                	sd	s4,280(sp)
 
-    move  a0, sp
+    move  a0, sp#站指针的值保存a0中，然后将a0的值作为参数传递给trap
     802004e2:	850a                	mv	a0,sp
     jal trap
     802004e4:	f89ff0ef          	jal	ra,8020046c <trap>

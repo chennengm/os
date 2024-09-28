@@ -129,13 +129,20 @@ case IRQ_S_TIMER:
             }
             break;
 ```
-调用clock_set_next_event()函数设置下一次时钟中断事件，判断ticks+1是否为100，即是否遇到了100次时钟中断，如果是，则调用print_ticks()函数，输出“100 ticks”
+调用clock_set_next_event()函数设置下一次时钟中断事件，判断++ticks是否为100，即是否遇到了100次时钟中断，如果是，则调用print_ticks()函数，输出“100 ticks”
 
 定时器中断处理的流程为：
-set_sbi_timer()函数通过OpenSBI的时钟事件触发中断，之后跳转到trapentry.S的__alltraps，保存上下文，并跳转到trap.c的中断处理函数trap()。
-trap()函数参数为切换前上下文的结构体，调用trap_dispatch函数，将中断异常和异常处理的工作分发给两个函数interrupt_handler和exception_handler。
-interrupt_handler函数根据中断类型，输出对应文字，且对于用户软件的计时器中断，进行计数器的累加，设置下一次时钟中断。
-中断处理结束后，返回trapentry.S，执行__trapret中的内容——恢复之前保存的寄存器和状态信息，从中断返回到用户态。
+初始化时，先设置sstatus的supervisor中断使能位；
+
+clock_set_next_event()函数通过OpenSBI提供的接口set_sbi_timer()，实现每秒100次时钟中断；
+
+根据设置，“所有中断都跳到alltraps处理”，触发时钟中断时，trapentry.S中的__alltraps进行保存上下文，并跳转到trap.c的中断处理函数trap()；
+
+trap()函数参数为切换前上下文的结构体，调用trap_dispatch函数，将中断异常和异常处理的工作分发给两个函数interrupt_handler和exception_handler；
+
+interrupt_handler函数根据中断类型，输出对应文字，设置下一次时钟中断；
+
+中断处理结束后，返回trapentry.S，执行__trapret，恢复之前保存的寄存器和状态信息，从S态中断返回到U态。
 
 ## 重要的知识点
 

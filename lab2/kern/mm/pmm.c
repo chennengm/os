@@ -21,9 +21,9 @@ uint64_t va_pa_offset;
 // DRAM_BASE defined in riscv.h as 0x80000000
 const size_t nbase = DRAM_BASE / PGSIZE;
 
-// virtual address of boot-time page directory
+//启动时的页目录的虚拟地址
 uintptr_t *satp_virtual = NULL;
-// physical address of boot-time page directory
+//启动时的页目录的物理地址
 uintptr_t satp_physical;
 
 // physical memory management

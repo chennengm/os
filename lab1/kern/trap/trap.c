@@ -205,7 +205,7 @@ void exception_handler(struct trapframe *tf) {
 /* trap_dispatch - dispatch based on what type of trap occurred */
 static inline void trap_dispatch(struct trapframe *tf) {
     if ((intptr_t)tf->cause < 0) {
-        // interrupts，scause是负数，最高位是1
+        // interrupts，scause是负数最高位是1
         interrupt_handler(tf);
     } else {
         // exceptions

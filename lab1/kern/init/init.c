@@ -26,7 +26,7 @@ int kern_init(void) {
 
     // grade_backtrace();
 
-    idt_init();  // init interrupt descriptor table
+    idt_init();  // 初始化中断描述符表（IDT），以设置中断处理程序。
 
     // rdtime in mbare mode crashes
     clock_init();  // init clock interrupt

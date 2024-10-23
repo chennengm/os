@@ -7,7 +7,7 @@
     addi sp, sp, -36 * REGBYTES
     # save x registers
     STORE x0, 0*REGBYTES(sp)#据寄存器的编号和宏定义的偏移量来确定的
-    STORE x1, 1*REGBYTES(sp)
+    STORE x1, 1*REGBYTES(sp)# x1 的值存储到当前栈指针 sp 指向的内存位置的偏移量 1 * REGBYTES 处
     STORE x3, 3*REGBYTES(sp)
     STORE x4, 4*REGBYTES(sp)
     STORE x5, 5*REGBYTES(sp)

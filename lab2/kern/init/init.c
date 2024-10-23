@@ -24,7 +24,7 @@ int kern_init(void) {
     print_kerninfo();
 
     // grade_backtrace();
-    idt_init();  // init interrupt descriptor table
+    idt_init();  // 初始化中断描述符表
 
     pmm_init();  // init physical memory management
 
@@ -40,12 +40,12 @@ int kern_init(void) {
     while (1)
         ;
 }
-
+//反向调用堆栈检查
 void __attribute__((noinline))
 grade_backtrace2(int arg0, int arg1, int arg2, int arg3) {
     mon_backtrace(0, NULL, NULL);
 }
-
+//
 void __attribute__((noinline)) grade_backtrace1(int arg0, int arg1) {
     grade_backtrace2(arg0, (uintptr_t)&arg0, arg1, (uintptr_t)&arg1);
 }

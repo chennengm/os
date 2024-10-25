@@ -135,6 +135,41 @@ n 次幂 (Pow(2, n)), 即 1, 2, 4, 8, 16, 32, 64, 128…
 说明实现的正确性，需要有设计文档。
 > 
 
+在伙伴系统（Buddy System）内存分配算法中，内存分配器使用按 2 的幂次划分的内存块来优化内存管理。每个空闲内存块都有一个 “伙伴” 内存块，内存分配器可以通过伙伴算法高效合并相邻的空闲块，从而减少内存碎片。下面说明各个关键函数的功能和作用。
+
+1. buddy_init() - 初始化内存管理结构
+
+   该函数用于初始化伙伴内存管理结构，即在系统启动时调用，设置伙伴系统的空闲链表和结构。level 表示伙伴系统的层数，free_array 为按大小分类的空闲块列表数组。函数中通过循环调用 list_init() 初始化每个空闲列表（free_array 的每一项），并且设置初始空闲块数为 0。
+
+2. buddy_init_memmap() - 初始化指定的物理内存块并加入空闲链表
+
+   该函数用于初始化从 base 开始的 n 个物理页块。
+通过 get_power() 计算块的 2 的幂次，将 level 设置为与 n 大小对应的幂次。
+然后遍历页块，将每个页的 flags 和 property 清零，并将页引用计数设置为 0。
+最后将初始化的内存块按大小加入空闲列表 free_array 的对应项中。
+
+3. buddy_alloc_pages(size_t n) - 分配指定大小的内存块
+
+   该函数用于按指定大小（页数）分配内存块。通过 get_power() 可以计算所需块大小的最小幂次，然后将 level 设置为比实际请求大小大的幂次（如果不是 2 的幂）。然后查找大小合适的空闲块；若找到，则直接分配并标记为已使用，更新空闲页数，若没有找到合适块，会递归分割较大块直到找到合适块。
+
+4. get_buddy(struct Page page) - 获取页块的伙伴块
+
+   该函数通过页号计算并返回指定页的伙伴页号，伙伴地址可以通过按位异或运算翻转相应位数获得，便于后续合并相邻空闲块。
+
+5. buddy_free_pages(struct Page base, size_t n) - 释放并合并内存块
+
+   该函数会释放指定块大小的页，并将该页加入空闲链表。释放的块在插入空闲列表后，会检查其伙伴块的状态。若伙伴块未被使用且大小相同，则两块会合并，并逐层递归执行，将可以合并的块都进行合并。
+
+6. buddy_nr_free_pages() - 返回当前的空闲页数
+
+   该函数用于返回当前空闲块的总数。
+
+
+7. basic_check() - 基本测试函数
+
+    该测试函数通过分配并释放一定数量的内存页，结合断言确保各函数功能正常工作。包括了分配并释放页面的单元测试，保证分配的地址不同且分配后空闲块数正确。
+
+
 **2.4 扩展练习 Challenge：任意大小的内存单元 slub 分配算法（需要编程）**
 
 > slub 算法，实现两层架构的高效内存单元分配，第一层是基于页大小的内存分配，第二层是在第一层基础上
@@ -149,13 +184,17 @@ n 次幂 (Pow(2, n)), 即 1, 2, 4, 8, 16, 32, 64, 128…
 Challenges 是选做，完成 Challenge 的同学可单独提交 Challenge。完成得好的同学可获得最终考试成绩的加分。
 > 
 
-在基于OpenSBI固件的操作系统中sbi_domain_memregion_count 和 sbi_domain_memregion_get 可以用于获取当前硬件的可用物理内存范围。这两个函数通过 SBI（Supervisor Binary Interface） 与底层固件（例如 OpenSBI）交互，以获取物理内存的相关信息。它们可以提供当前系统硬件中不同物理内存区域的数量和详细信息。
+1.在基于OpenSBI固件的操作系统中sbi_domain_memregion_count 和 sbi_domain_memregion_get 可以用于获取当前硬件的可用物理内存范围。这两个函数通过 SBI（Supervisor Binary Interface） 与底层固件（例如 OpenSBI）交互，以获取物理内存的相关信息。它们可以提供当前系统硬件中不同物理内存区域的数量和详细信息。
 
-1.sbi_domain_memregion_count 获取内存区域数量
+ -sbi_domain_memregion_count 获取内存区域数量
 
 sbi_domain_memregion_count(unsigned long domain_id) 函数可以返回指定域（domain）的内存区域数量。
 
-2.sbi_domain_memregion_get 获取内存区域详细信息
+ -sbi_domain_memregion_get 获取内存区域详细信息
 
 sbi_domain_memregion_get(unsigned long domain_id, unsigned long index, struct sbi_domain_memregion *mem_region) 函数可以用于获取特定内存区域的详细信息，包括基地址、大小以及标志。
 当我们知道有多少个内存区域之后，接下来可以遍历这些区域，通过 sbi_domain_memregion_get() 来获取每一个内存区域的具体信息。
+
+2.硬件可能会提供一些特定的寄存器或内存映射表，OS可以通过读取这些信息来获取可用物理内存范围，比如内存大小、基地址等；
+
+3.OS可以通过BIOS提供的相关调用来获取硬件信息，包括内存信息。BIS提供了一些中断服务例程，除了INT 15h，还有其他中断调用，如INT 12h，用于获取内存大小信息。

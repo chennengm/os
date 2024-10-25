@@ -1,5 +1,6 @@
 #include <default_pmm.h>
 #include <best_fit_pmm.h>
+#include <buddy_pmm.h>
 #include <defs.h>
 #include <error.h>
 #include <memlayout.h>
@@ -26,6 +27,8 @@ uintptr_t *satp_virtual = NULL;
 //启动时的页目录的物理地址
 uintptr_t satp_physical;
 
+size_t fppn;
+
 // physical memory management
 const struct pmm_manager *pmm_manager;
 
@@ -35,6 +38,7 @@ static void check_alloc_page(void);
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void) {
     pmm_manager = &best_fit_pmm_manager;
+    //pmm_manager = &buddy_sys_pmm_manager;
     cprintf("memory management: %s\n", pmm_manager->name);
     pmm_manager->init();
 }
@@ -113,6 +117,7 @@ static void page_init(void) {
     mem_end = ROUNDDOWN(mem_end, PGSIZE);
     if (freemem < mem_end) {
         init_memmap(pa2page(mem_begin), (mem_end - mem_begin) / PGSIZE);
+        fppn=pa2page(mem_begin)-pages+nbase; //起始的物理页号
     }
 }
 

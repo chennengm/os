@@ -20,42 +20,20 @@ Runtime SBI Version    : 0.1
 PMP0: 0x0000000080000000-0x000000008001ffff (A)
 PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
 (THU.CST) os is loading ...
+
+
 Special kernel symbols:
-  entry  0xffffffffc0200032 (virtual)
-  etext  0xffffffffc020162c (virtual)
-  edata  0xffffffffc0206010 (virtual)
-  end    0xffffffffc0206570 (virtual)
-Kernel executable memory footprint: 26KB
-memory management: buddy_sys_pmm_manager
-physcial memory map:
-  memory: 0x0000000007e00000, [0x0000000080200000, 0x0000000087ffffff].
-空闲块数为：16384
-p0的虚拟地址0xffffffffc020f318.
-p1的虚拟地址0xffffffffc020f458.
-p2的虚拟地址0xffffffffc020f598.
-check_alloc_page() succeeded!
-satp virtual address: 0xffffffffc0205000
-satp physical address: 0x0000000080205000
+  entry  0x000000008020000a (virtual)
+  etext  0x0000000080200a28 (virtual)
+  edata  0x0000000080204010 (virtual)
+  end    0x0000000080204028 (virtual)
+Kernel executable memory footprint: 17KB
 ++ setup timer interrupts
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
-100 ticks
+sbi_emulate_csr_read: hartid0: invalid csr_num=0x302
+Exception type:Illegal instruction
+Illegal instruction caught at 0x0x8020004e
+Exception type:breakpoint
+breakpoint caught at 0x0x80200052
 100 ticks
 100 ticks
 100 ticks

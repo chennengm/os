@@ -75,12 +75,12 @@ default_init_memmap(struct Page *base, size_t n) {
         p->flags = p->property = 0;
         set_page_ref(p, 0);
     }
-    base->property = n;
+    base->property = n; //该物理块包含 n 个连续的空闲页面
     SetPageProperty(base);
-    nr_free += n;
-    if (list_empty(&free_list)) {
+    nr_free += n; //更新全局的空闲页面数量计数器
+    if (list_empty(&free_list)) { //free_list空，直接加
         list_add(&free_list, &(base->page_link));
-    } else {
+    } else { //根据物理地址从小到大排序
 
         list_entry_t* le = &free_list;
         while ((le = list_next(le)) != &free_list) {
@@ -124,9 +124,9 @@ default_alloc_pages(size_t n) {
             list_add(prev, &(p->page_link));
         }
         nr_free -= n;
-        ClearPageProperty(page);
+        ClearPageProperty(page); //使用ClearPageProperty(page)清除page的property标志表明它已被分配
     }
-    return page;
+    return page; //返回分配的page指针
 }
 
 static void
@@ -140,7 +140,7 @@ default_free_pages(struct Page *base, size_t n) {
         set_page_ref(p, 0);
     }
     base->property = n;
-    SetPageProperty(base);
+    SetPageProperty(base); //标记为空闲块
     nr_free += n;
 
     if (list_empty(&free_list)) {

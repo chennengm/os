@@ -50,7 +50,7 @@ static void init_memmap(struct Page *base, size_t n) {
 // memory
 struct Page *alloc_pages(size_t n) {
     struct Page *page = NULL;
-    bool intr_flag;
+    bool intr_flag;  //使用 intr_flag 保存中断状态，确保分配期间不会被中断打断
 
     while (1) {
         local_intr_save(intr_flag);
@@ -345,7 +345,7 @@ int page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
         return -E_NO_MEM;
     }
     page_ref_inc(page);
-    if (*ptep & PTE_V) {
+    if (*ptep & PTE_V) { //原先存在映射
         struct Page *p = pte2page(*ptep);
         if (p == page) {
             page_ref_dec(page);
@@ -409,7 +409,7 @@ static void check_pgdir(void) {
     pte_t *ptep;
     assert((ptep = get_pte(boot_pgdir, 0x0, 0)) != NULL);
     assert(pte2page(*ptep) == p1);
-    assert(page_ref(p1) == 1);
+    assert(page_ref(p1) == 1); //该函数返回一个物理页面被多少个虚拟页面映射
 
     ptep = (pte_t *)KADDR(PDE_ADDR(boot_pgdir[0]));
     ptep = (pte_t *)KADDR(PDE_ADDR(ptep[0])) + 1;

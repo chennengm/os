@@ -278,7 +278,7 @@ if (swap_init_ok) {
 > challenge部分不是必做部分，不过在正确最后会酌情加分。需写出有详细的设计、分析和测试的实验报告。完成出色的可获得适当加分。
 >
 
-    实现基于LRU（最近最少使用）策略的页替换算法，当出现缺页异常时，优先换出最近最少被访问的页面。使用双向链表记录页面的访问顺序，当每次访问一个页面时（无论是否存在），都会将该页面移动到链表的头部，表明它是最近被访问的，当需要换出时，选择链表尾部的页面。
+    实现基于LRU（最近最少使用）策略的页替换算法，当出现缺页异常时，优先换出最近最少被访问的页面。使用双向链表记录页面的访问顺序，当每次访问一个页面时（无论是否存在），都会将该页面移动到链表的尾部，表明它是最近被访问的，当需要换出时，选择链表头部的页面。
     该过程主要通过_lru_mem、_lru_update_page、_lru_map_swappable、_lru_swap_out_victim函数实现，下面具体介绍。
     
     1. _lru_mem与_lru_update_page
@@ -288,7 +288,7 @@ if (swap_init_ok) {
     // 将页面从当前位置删除
     list_del(entry);
 
-    // 将页面插入到链表头部     
+    // 将页面插入到链表尾部     
     list_add_before(&pra_list_head, entry);
 ```
 
@@ -300,8 +300,8 @@ if (swap_init_ok) {
     list_entry_t* entry = &(page->pra_page_link);  //获取页面的链表节点
     assert(entry != NULL && head != NULL);  //断言该节点不为空
 
-    // 将页面page插入到页面链表pra_list_head的头部
-    list_add_after(head, entry);   
+    // 将页面page插入到页面链表pra_list_head的尾部
+    list_add_before(head, entry);   
 ```
          具体来说，获取到链表的头指针后head，将新映射的页面entry插入到链表头部。
 
@@ -310,25 +310,25 @@ if (swap_init_ok) {
         
         该函数会在需要页替换时被调用，选择页面链表pra_list_head尾部、最久未被访问过的页面。
 ```jsx
-    // 获取链表尾部的页面
-    list_entry_t* tail_entry = list_prev(head);   
+    // 获取链表头部的页面
+    list_entry_t* head_entry = list_next(head);   
 
     // 如果链表为空，返回NULL
-    if (tail_entry == head) {
+    if (head_entry == head) {
         *ptr_page = NULL;
         return 0;
     }
 
-    // 获取链表尾部的页面对应的Page结构指针
-    struct Page* page = le2page(tail_entry, pra_page_link);
+    // 获取链表头部的页面对应的Page结构指针
+    struct Page* page = le2page(head_entry, pra_page_link);
 
     // 将该页面从链表中删除
-    list_del(tail_entry);
+    list_del(head_entry);
 
     // 将该页面指针赋值给ptr_page作为换出页面
     *ptr_page = page;
 ```
-        具体来说，首先会获取到页面链表的尾部页面，然后将该页面从链表中删除，赋值给ptr_page作为要被换出的页面。
+        具体来说，首先会获取到页面链表的头部页面，然后将该页面从链表中删除，赋值给ptr_page作为要被换出的页面。
 
 
     4. 测试函数_lru_check_swap

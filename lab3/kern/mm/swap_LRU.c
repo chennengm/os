@@ -24,8 +24,8 @@ _lru_map_swappable(struct mm_struct* mm, uintptr_t addr, struct Page* page, int 
     list_entry_t* entry = &(page->pra_page_link);  //获取页面的链表节点
     assert(entry != NULL && head != NULL);  //断言该节点不为空
 
-    // 将页面page插入到页面链表pra_list_head的尾部！表明它是最近被访问的
-    list_add_after(head, entry);  
+    // 将页面page插入到页面链表pra_list_head 
+    list_add_before(head, entry);  
 
     return 0;
 }
@@ -38,8 +38,8 @@ _lru_swap_out_victim(struct mm_struct* mm, struct Page** ptr_page, int in_tick)
     assert(head != NULL);
     assert(in_tick == 0);
 
-    // 获取链表尾部的页面
-    list_entry_t* tail_entry = list_prev(head);   
+    // 获取链表头部的页面
+    list_entry_t* tail_entry = list_next(head);   
 
     // 如果链表为空，返回NULL
     if (tail_entry == head) {

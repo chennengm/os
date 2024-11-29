@@ -86,6 +86,8 @@ void forkrets(struct trapframe *tf);//系统调用 fork 返回时的处理函数
 void switch_to(struct context *from, struct context *to);
 //上下文切换函数
 // alloc_proc - 用于分配并初始化一个新的 proc_struct（进程结构）
+
+
 static struct proc_struct *
 alloc_proc(void) {
     struct proc_struct *proc = kmalloc(sizeof(struct proc_struct));
@@ -172,12 +174,14 @@ get_pid(void) {
     return last_pid;
 }
 
+
+
 // proc_run - make process "proc" running on cpu
 // NOTE: before call switch_to, should load  base addr of "proc"'s new PDT
 void
 proc_run(struct proc_struct *proc) {
     if (proc != current) {
-        // LAB4:EXERCISE3 YOUR CODE
+        // LAB4:EXERCISE3 2213393
         /*
         * Some Useful MACROs, Functions and DEFINEs, you can use them in below implementation.
         * MACROs or Functions:
@@ -186,7 +190,22 @@ proc_run(struct proc_struct *proc) {
         *   lcr3():                   Modify the value of CR3 register
         *   switch_to():              Context switching between two processes
         */
-       
+
+        bool intr_flag; 
+        struct proc_struct *prev = current;
+        current = proc;
+        local_intr_save(intr_flag); // 保持当前中断状态到intr_flag并禁用中断
+        {
+            // 当前进程设为待调度的进程
+            current = proc;
+            // 页目录表包含了虚拟地址到物理地址的映射关系,将当前进程的虚拟地址空间映射关系切换为新进程的映射关系.
+            // 确保指令和数据的地址转换是基于新进程的页目录表进行的
+            // 将当前的cr3寄存器改为需要运行进程的页目录表，其实就是更新页表
+            lcr3(current->cr3);
+            // 进行上下文切换，保存原线程的寄存器并恢复待调度线程的寄存器
+            switch_to(&(prev->context), &(current->context));
+        }
+        local_intr_restore(intr_flag); // 恢复中断状态
     }
 }
 
@@ -295,6 +314,8 @@ copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf) {
  * @stack:       the parent's user stack pointer. if stack==0, It means to fork a kernel thread.
  * @tf:          the trapframe info, which will be copied to child process's proc->tf
  */
+
+
 int
 do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     int ret = -E_NO_FREE_PROC;//表示没有可用的进程控制块

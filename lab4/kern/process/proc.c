@@ -193,7 +193,6 @@ proc_run(struct proc_struct *proc) {
 
         bool intr_flag; 
         struct proc_struct *prev = current;
-        current = proc;
         local_intr_save(intr_flag); // 保持当前中断状态到intr_flag并禁用中断
         {
             // 当前进程设为待调度的进程

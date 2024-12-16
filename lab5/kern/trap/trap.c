@@ -145,6 +145,7 @@ void interrupt_handler(struct trapframe *tf) {
             // In fact, Call sbi_set_timer will clear STIP, or you can clear it
             // directly.
             // clear_csr(sip, SIP_STIP);
+            // 处理时钟中断：每TICK_NUM个时钟滴答，当前进程被设置为可调度的状态
             clock_set_next_event();
             if (++ticks % TICK_NUM == 0 && current) {
                 // print_ticks();
@@ -218,7 +219,10 @@ void exception_handler(struct trapframe *tf) {
         case CAUSE_USER_ECALL:
             //cprintf("Environment call from U-mode\n");
             tf->epc += 4;
-            syscall();
+            //sepc寄存器是产生异常的指令的位置，在异常处理结束后，会回到sepc的位置继续执行
+            //对于ecall, 我们希望sepc寄存器要指向产生异常的指令(ecall)的下一条指令
+            //否则就会回到ecall执行再执行一次ecall, 无限循环
+            syscall();// 进行系统调用处理
             break;
         case CAUSE_SUPERVISOR_ECALL:
             cprintf("Environment call from S-mode\n");

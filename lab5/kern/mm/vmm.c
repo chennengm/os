@@ -458,7 +458,18 @@ do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
             //map of phy addr <--->
             //logical addr
             //(3) make the page swappable.
-            page->pra_vaddr = addr;
+            // page->pra_vaddr = addr;
+            // swap_in(mm, addr, &page);//分配一个内存页并从磁盘上的交换文件加载数据到该内存页
+            // page_insert(mm->pgdir,page,addr,perm);//建立内存页 page 的物理地址和线性地址 addr 之间的映射
+            // swap_map_swappable(mm, addr, page, 1);//将页面标记为可交换
+            // page->pra_vaddr = addr;//跟踪页面映射的线性地址
+            if ((ret = swap_in(mm, addr, &page)) != 0) {
+                cprintf("swap_in in do_pgfault failed\n");
+                goto failed;
+            }
+            page_insert(mm->pgdir,page,addr,perm);//建立内存页 page 的物理地址和线性地址 addr 之间的映射
+            swap_map_swappable(mm, addr, page, 1);//将页面标记为可交换
+            page->pra_vaddr = addr;//跟踪页面映射的线性地址
         } else {
             cprintf("no swap_init_ok but ptep is %x, failed\n", *ptep);
             goto failed;
@@ -471,6 +482,7 @@ failed:
 
 bool
 user_mem_check(struct mm_struct *mm, uintptr_t addr, size_t len, bool write) {
+    //检查从addr开始长为len的一段内存能否被用户态程序访问
     if (mm != NULL) {
         if (!USER_ACCESS(addr, addr + len)) {
             return 0;

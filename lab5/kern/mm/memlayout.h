@@ -41,13 +41,20 @@
  * (*) Note: The kernel ensures that "Invalid Memory" is *never* mapped.
  *     "Empty Memory" is normally unmapped, but user programs may map pages
  *     there if desired.
+ *     
+ *     Empty Memory: 未使用的内存区域，通常是未映射的。
+ *     Cur. Page Table: 当前页表，用于映射内核的地址空间。
+ *     Invalid Memory: 未使用的内存区域，通常是未映射的。
+ *     Remapped Physical Memory: 重新映射的物理内存区域，用于内核的地址空间。
+ *     User stack: 用户栈。
+ *     User Program & Heap: 用户程序和堆。
  *
  * */
 
 /* All physical memory mapped at this address */
-#define KERNBASE            0xFFFFFFFFC0200000
-#define KMEMSIZE            0x7E00000                  // the maximum amount of physical memory
-#define KERNTOP             (KERNBASE + KMEMSIZE)
+#define KERNBASE            0xFFFFFFFFC0200000         // 内核的起始地址
+#define KMEMSIZE            0x7E00000                  // 内核可用的最大的物理内存大小 the maximum amount of physical memory
+#define KERNTOP             (KERNBASE + KMEMSIZE)      // 内核区域的结束地址
 
 #define KERNEL_BEGIN_PADDR 0x80200000
 #define KERNEL_BEGIN_VADDR 0xFFFFFFFFC0200000
@@ -59,8 +66,8 @@
  * for the entire virtual address space into that 4 Meg region starting at VPT.
  * */
 
-#define KSTACKPAGE          2                           // # of pages in kernel stack
-#define KSTACKSIZE          (KSTACKPAGE * PGSIZE)       // sizeof kernel stack
+#define KSTACKPAGE          2                           // 内核栈的页数 # of pages in kernel stack
+#define KSTACKSIZE          (KSTACKPAGE * PGSIZE)       // 内核栈大小 sizeof kernel stack
 
 #define USERTOP             0x80000000
 #define USTACKTOP           USERTOP

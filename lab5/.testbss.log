@@ -22,11 +22,11 @@ PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
 (THU.CST) os is loading ...
 
 Special kernel symbols:
-  entry  0xc0200036 (virtual)
-  etext  0xc0206632 (virtual)
-  edata  0xc02a1168 (virtual)
-  end    0xc02ac6f0 (virtual)
-Kernel executable memory footprint: 690KB
+  entry  0xc0200032 (virtual)
+  etext  0xc02065e8 (virtual)
+  edata  0xc02a7240 (virtual)
+  end    0xc02b279c (virtual)
+Kernel executable memory footprint: 714KB
 memory management: default_pmm_manager
 physcial memory map:
   memory: 0x07e00000, [0x80200000, 0x87ffffff].
@@ -42,7 +42,7 @@ page fault at 0x00000100: K/W
 check_pgfault() succeeded!
 check_vmm() succeeded.
 SWAP: manager = fifo swap manager
-BEGIN check_swap: count 1, total 31567
+BEGIN check_swap: count 1, total 31561
 setup Page Table for vaddr 0X1000, so alloc a page
 setup Page Table vaddr 0~4MB OVER!
 set up init env for check_swap begin!
@@ -103,9 +103,9 @@ Yes, good.  Now doing a wild write off the end...
 testbss may pass.
 Store/AMO page fault
 not valid addr c02000, and  can not find it in vma
-trapframe at 0xffffffffc04b2ee0
+trapframe at 0xffffffffc04b8ee0
   zero     0x00000000
-  ra       0x008005fe
+  ra       0x008005ea
   sp       0x7fffffe0
   gp       0x00000000
   tp       0x00000000
@@ -116,10 +116,10 @@ trapframe at 0xffffffffc04b2ee0
   s1       0x00000000
   a0       0x00000000
   a1       0x0000000a
-  a2       0x00800a18
+  a2       0x00800a00
   a3       0x7fffffa8
   a4       0x00100000
-  a5       0x00c02600
+  a5       0x00c025ec
   a6       0x00000000
   a7       0x00000000
   s2       0x00000000
@@ -132,12 +132,12 @@ trapframe at 0xffffffffc04b2ee0
   s9       0x00000000
   s10      0x00000000
   s11      0x00000000
-  t3       0x00000000
+  t3       0x00800a00
   t4       0x00000000
   t5       0x00000000
   t6       0x00000000
   status   0x00046000
-  epc      0x00800604
+  epc      0x008005f0
   tval 0x00c02000
   cause    0x0000000f
 kernel panic at kern/trap/trap.c:252:

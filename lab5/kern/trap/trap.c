@@ -145,7 +145,6 @@ void interrupt_handler(struct trapframe *tf) {
             // In fact, Call sbi_set_timer will clear STIP, or you can clear it
             // directly.
             // clear_csr(sip, SIP_STIP);
-            // 处理时钟中断：每TICK_NUM个时钟滴答，当前进程被设置为可调度的状态
             clock_set_next_event();
             if (++ticks % TICK_NUM == 0 && current) {
                 // print_ticks();
@@ -192,6 +191,7 @@ void exception_handler(struct trapframe *tf) {
             cprintf("Breakpoint\n");
             if(tf->gpr.a7 == 10){
                 tf->epc += 4;
+                cprintf("activate syscall\n");
                 syscall();
                 kernel_execve_ret(tf,current->kstack+KSTACKSIZE);
             }
@@ -219,10 +219,7 @@ void exception_handler(struct trapframe *tf) {
         case CAUSE_USER_ECALL:
             //cprintf("Environment call from U-mode\n");
             tf->epc += 4;
-            //sepc寄存器是产生异常的指令的位置，在异常处理结束后，会回到sepc的位置继续执行
-            //对于ecall, 我们希望sepc寄存器要指向产生异常的指令(ecall)的下一条指令
-            //否则就会回到ecall执行再执行一次ecall, 无限循环
-            syscall();// 进行系统调用处理
+            syscall();
             break;
         case CAUSE_SUPERVISOR_ECALL:
             cprintf("Environment call from S-mode\n");
@@ -237,6 +234,10 @@ void exception_handler(struct trapframe *tf) {
             break;
         case CAUSE_FETCH_PAGE_FAULT:
             cprintf("Instruction page fault\n");
+            if ((ret = pgfault_handler(tf)) != 0) {
+                print_trapframe(tf);
+                panic("handle pgfault failed. %e\n", ret);
+            }
             break;
         case CAUSE_LOAD_PAGE_FAULT:
             cprintf("Load page fault\n");

@@ -303,6 +303,105 @@ prco_init()` ->`kernel_thread()` -> `init_main()` -> `do_wait()` -> `do_exit
 > 这个扩展练习涉及到本实验和上一个实验“虚拟内存管理”。在 ucore 操作系统中，当一个用户父进程创建自己的子进程时，父进程会把其申请的用户空间设置为只读，子进程可共享父进程占用的用户内存空间中的页面（这就是一个共享的资源）。当其中任何一个进程修改此用户内存空间中的某页面时，ucore 会通过 page fault 异常获知该操作，并完成拷贝内存页面，使得两个进程都有各自的内存页面。这样一个进程所做的修改不会被另外一个进程可见了。请在 ucore 中实现这样的 COW 机制。
 > 由于 COW 实现比较复杂，容易引入 bug，请参考 [https://dirtycow.ninja/](https://dirtycow.ninja/) 看看能否在 ucore 的 COW 实现中模拟这个错误和解决方案。需要有解释。
 > 这是一个 big challenge.
+
+1、设置共享标志
+
+将vmm.c文件中的dup_mmap函数的共享变量share的值改为0，启用共享功能：
+
+```c
+int dup_mmap(struct mm_struct *to, struct mm_struct *from) {
+    ...
+        bool share = 0;
+    ...
+}
+```
+
+2、映射共享页面
+
+对pmm.c文件中的copy_range函数添加共享的处理，如果 share 为1，那么将子进程的页面映射到父进程的页面。由于两个进程共享一个页面之后，无论任何一个进程修改页面，都会影响另外一个页面，所以需要子进程和父进程对于这个共享页面都保持只读。
+
+```c
+int copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end,
+               bool share) {
+        ...
+        if (*ptep & PTE_V) {
+            if ((nptep = get_pte(to, start, 1)) == NULL) return -E_NO_MEM;
+            uint32_t perm = (*ptep & PTE_USER);
+            //get page from ptep
+            struct Page *page = pte2page(*ptep);
+            int ret = 0;
+            // 如果启用写时复制
+            if(share)
+            {
+                cprintf("Sharing the page 0x%x\n", page2kva(page));
+                // 物理页面共享，并设置两个PTE上的标志位为只读
+                page_insert(from, page, start, perm & ~PTE_W);
+                ret = page_insert(to, page, start, perm & ~PTE_W);
+            }
+            // 完整拷贝内存
+            else
+            {
+                // alloc a page for process B
+                // 目标页面地址
+                struct Page *npage = alloc_page();
+                assert(page!=NULL);
+                assert(npage!=NULL);
+                cprintf("alloc a new page 0x%x\n", page2kva(npage));
+                void * kva_src = page2kva(page);
+                void * kva_dst = page2kva(npage);
+                memcpy(kva_dst, kva_src, PGSIZE);
+                // 将目标页面地址设置到PTE中
+                ret = page_insert(to, npage, start, perm);
+            }
+            assert(ret == 0);
+        }
+   ...
+}
+```
+
+3、修改时拷贝
+
+vmm.c的do_pgfault函数中，如果发生错误的虚拟地址对应的页表项是0，说明该地址没有映射到物理页，那么就需要分配一块物理页，并设置页表项，使得虚拟地址和物理地址能够对应。
+如果发生错误的虚拟地址对应的页表项不是0，而且是有效的（`PTE_V`位为1），说明该地址已经映射到物理页，但是发生了权限冲突，例如写入了只读页面。这时候就需要进行写时复制（copy-on-write）的操作，即复制一块内存给当前进程，让它拥有自己的物理页，而不是和其他进程共享。如果发生错误的虚拟地址对应的页表项不是0，而且是无效的（`PTE_V`位为0），说明该地址是非法的，那么就需要返回错误信息，并终止进程。
+
+```c
+int do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
+    ...
+        if (*ptep == 0) {
+        // 分配一块物理页，并设置页表项
+        if (pgdir_alloc_page(mm->pgdir, addr, perm) == NULL) {
+            cprintf("pgdir_alloc_page in do_pgfault failed\n");
+            goto failed;
+        }
+    }
+    else {
+        struct Page *page=NULL;
+        // 如果当前页错误的原因是写入了只读页面
+        if (*ptep & PTE_V) {
+            // 写时复制：复制一块内存给当前进程
+            cprintf("\n\nCOW: ptep 0x%x, pte 0x%x\n",ptep, *ptep);
+            // 原先所使用的只读物理页
+            page = pte2page(*ptep);
+            // 如果该物理页面被多个进程引用
+            if(page_ref(page) > 1)
+            {
+                // 释放当前PTE的引用并分配一个新物理页
+                struct Page* newPage = pgdir_alloc_page(mm->pgdir, addr, perm);
+                void * kva_src = page2kva(page);
+                void * kva_dst = page2kva(newPage);
+                // 拷贝数据
+                memcpy(kva_dst, kva_src, PGSIZE);
+            }
+            // 如果该物理页面只被当前进程所引用,即page_ref等1
+            else
+                // 则可以直接执行page_insert，保留当前物理页并重设其PTE权限。
+                page_insert(mm->pgdir, page, addr, perm);
+        }
+    else
+    ...
+}
+```
+
 > 2. 说明该用户程序是何时被预先加载到内存中的？与我们常用操作系统的加载有何区别，原因是什么？
 
 在项目编译的时候载入内存的。在宏定义KERNEL_EXECVE我们可以发现用户态的程序载入其实是通过特定的编译输出文件，此次实验更改了Makefile，并且通过ld指令将用户态程序（user文件夹下的代码）编译链接到项目中。所以在ucore启动的时候用户程序就被加载在内存中了。

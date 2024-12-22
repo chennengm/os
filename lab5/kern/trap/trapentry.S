@@ -1,9 +1,5 @@
 #include <riscv.h>
 
-# 若在中断之前处于 U mode(用户态)
-# 则 sscratch 保存的是内核栈地址
-# 否则中断之前处于 S mode(内核态)，sscratch 保存的是 0
-
     .altmacro
     .align 2
     .macro SAVE_ALL
@@ -13,19 +9,12 @@
     # If coming from userspace, preserve the user stack pointer and load
     # the kernel stack pointer. If we came from the kernel, sscratch
     # will contain 0, and we should continue on the current stack.
-    
-    
-    csrrw sp, sscratch, sp #这里交换了sp和sccratch寄存器
-    
-    #sp为0，说明之前是内核态，我们刚才把内核栈指针换到了sscratch, 需要再拿回来
-    #sp不为0 时，说明之前是用户态，sp里现在存的就是内核栈指针，sscratch里现在是用户栈指针
-    #sp不为0，就跳到_save_context, 跳过_restore_kernel_sp的代码
+    csrrw sp, sscratch, sp
     bnez sp, _save_context
 
 _restore_kernel_sp:
-    csrr sp, sscratch #刚才把内核栈指针换到了sscratch, 需要再拿回来
+    csrr sp, sscratch
 _save_context:
-    #分配栈帧
     addi sp, sp, -36 * REGBYTES
     # save x registers
     STORE x0, 0*REGBYTES(sp)
@@ -63,14 +52,13 @@ _save_context:
     # get sr, epc, tval, cause
     # Set sscratch register to 0, so that if a recursive exception
     # occurs, the exception vector knows it came from the kernel
-    #如果之前是用户态产生的中断，用户栈指针从sscratch里挪到了s0寄存器， sscratch清零(内核态)
     csrrw s0, sscratch, x0
     csrr s1, sstatus
     csrr s2, sepc
     csrr s3, 0x143
     csrr s4, scause
 
-    STORE s0, 2*REGBYTES(sp) #如果之前是用户态发生中断，此时用户栈指针存到了内存里
+    STORE s0, 2*REGBYTES(sp)
     STORE s1, 32*REGBYTES(sp)
     STORE s2, 33*REGBYTES(sp)
     STORE s3, 34*REGBYTES(sp)
@@ -84,7 +72,7 @@ _save_context:
     LOAD s1, 32*REGBYTES(sp)
     LOAD s2, 33*REGBYTES(sp)
 
-    andi s0, s1, SSTATUS_SPP #可以通过SSTATUS_SPP的值判断之前是用户态还是内核态，为0则是内核态
+    andi s0, s1, SSTATUS_SPP
     bnez s0, _restore_context
 
 _save_kernel_sp:
@@ -127,7 +115,7 @@ _restore_context:
     LOAD x30, 30*REGBYTES(sp)
     LOAD x31, 31*REGBYTES(sp)
     # restore sp last
-    LOAD x2, 2*REGBYTES(sp)  #如果是用户态产生的中断，此时sp恢复为用户栈指针
+    LOAD x2, 2*REGBYTES(sp)
     .endm
 
     .globl __alltraps

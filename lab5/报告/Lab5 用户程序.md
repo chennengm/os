@@ -306,10 +306,11 @@ prco_init()` ->`kernel_thread()` -> `init_main()` -> `do_wait()` -> `do_exit
 
 1、设置共享标志
 
-将vmm.c文件中的dup_mmap函数的共享变量share的值改为0，启用共享功能：
+在vmm.c的dup_mmap函数中，将变量share的值改为0，启用页面共享功能：
 
 ```c
-int dup_mmap(struct mm_struct *to, struct mm_struct *from) {
+int dup_mmap(struct mm_struct *to, struct mm_struct *from) 
+{
     ...
         bool share = 0;
     ...
@@ -318,7 +319,8 @@ int dup_mmap(struct mm_struct *to, struct mm_struct *from) {
 
 2、映射共享页面
 
-对pmm.c文件中的copy_range函数添加共享的处理，如果 share 为1，那么将子进程的页面映射到父进程的页面。由于两个进程共享一个页面之后，无论任何一个进程修改页面，都会影响另外一个页面，所以需要子进程和父进程对于这个共享页面都保持只读。
+在pmm.c的copy_range函数中，映射共享页面。
+如果 share 为1，表示需要共享页面，则将子进程的页面映射到父进程的页面。由于两个进程共享一个页面之后，无论任何一个进程修改页面，都会影响另外一个页面，所以需要子进程和父进程对于这个共享页面都保持只读。
 
 ```c
 int copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end,
@@ -361,8 +363,9 @@ int copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end,
 
 3、修改时拷贝
 
-vmm.c的do_pgfault函数中，如果发生错误的虚拟地址对应的页表项是0，说明该地址没有映射到物理页，那么就需要分配一块物理页，并设置页表项，使得虚拟地址和物理地址能够对应。
-如果发生错误的虚拟地址对应的页表项不是0，而且是有效的（`PTE_V`位为1），说明该地址已经映射到物理页，但是发生了权限冲突，例如写入了只读页面。这时候就需要进行写时复制（copy-on-write）的操作，即复制一块内存给当前进程，让它拥有自己的物理页，而不是和其他进程共享。如果发生错误的虚拟地址对应的页表项不是0，而且是无效的（`PTE_V`位为0），说明该地址是非法的，那么就需要返回错误信息，并终止进程。
+vmm.c的do_pgfault函数中，如果页表项*ptep为0，表示虚拟地址没有映射到物理页，需要分配物理页，并设置页表项。
+如果发生错误的虚拟地址对应的页表项不是0，且有效（`PTE_V`位为1），表示虚拟地址已经映射到物理页，但发生了权限冲突，此时需要进行写时复制（copy-on-write）————即复制一块内存给当前进程，让它拥有自己的物理页，而不是和其他进程共享。
+如果发生错误的虚拟地址对应的页表项不是0，且无效（`PTE_V`位为0），说明该地址非法，则返回错误信息，终止进程。
 
 ```c
 int do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
